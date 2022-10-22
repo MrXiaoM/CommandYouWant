@@ -1,11 +1,7 @@
 package top.mrxiaom.commandyouwant
 
-import kotlinx.coroutines.launch
-import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.command.CommandManager
-import net.mamoe.mirai.console.command.CommandManager.INSTANCE.registeredCommands
-import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregisterAll
-import net.mamoe.mirai.console.command.CommandSender
+import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.command.CommandSenderOnMessage
 import net.mamoe.mirai.console.command.descriptor.ExperimentalCommandDescriptors
@@ -18,18 +14,16 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.event.EventPriority
-import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.MessageMetadata
-import net.mamoe.mirai.message.data.MessageSource
 import net.mamoe.mirai.message.data.PlainText
-import net.mamoe.mirai.utils.BotConfiguration
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.mirai.utils.MiraiInternalApi
 import net.mamoe.mirai.utils.info
 import top.mrxiaom.commandyouwant.config.CommandConfig
+import top.mrxiaom.commandyouwant.config.CommandReload
 import java.io.File
-import java.io.FilenameFilter
 
 object CommandYouWant : KotlinPlugin(
     JvmPluginDescription(
@@ -53,19 +47,20 @@ object CommandYouWant : KotlinPlugin(
             priority = EventPriority.MONITOR
         ) {
             val sender = toCommandSender()
-            processCommand(sender, message, source)
+            processCommand(sender, message)
         }
+        CommandReload.register()
         logger.info { "Plugin loaded" }
     }
 
     @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
-    private suspend fun processCommand(sender: CommandSenderOnMessage<MessageEvent>, originalMessage: MessageChain, source: MessageSource) {
-        val message = originalMessage.filterNot { it is MessageMetadata }.mapIndexed{ _, single ->
+    private suspend fun processCommand(sender: CommandSenderOnMessage<MessageEvent>, originalMessage: MessageChain) {
+        val message = originalMessage.filterNot { it is MessageMetadata }.mapIndexed { _, single ->
             if (single is PlainText) return@mapIndexed PlainText(single.content.trim().replace(Regex(" +"), " "))
             single
         }
         for (cmd in commandList) {
-            val args = cmd.keywordParsed.parse(sender, message)
+            val args = cmd.keywordParsed.findArguments(sender, message)
             if (args.isEmpty()) continue
             if (cmd.permissionRegistered?.testPermission(sender) == false) {
                 if (cmd.denyTips.isNotEmpty()) {
@@ -73,9 +68,28 @@ object CommandYouWant : KotlinPlugin(
                 }
                 break
             }
+            var blocked = false
+            for ((index, list) in cmd.keywordBlocks) {
+                val s = args.getOrNull(index)
+                if (s != null && list.any { s.contentToString().contains(it) }) {
+                    blocked = true
+                    break
+                }
+            }
+            if (blocked) {
+                if (cmd.keywordBlockTips.isNotEmpty()) {
+                    sender.sendMessage(cmd.keywordBlockTips)
+                }
+                return
+            }
             cmd.actionsParsed.forEach {
                 val command = it.parse(args)
-                CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                logger.verbose("refer to $command")
+                if (cmd.eventMode) {
+                    sender.fromEvent.rebuildMessageEvent(command)
+                } else {
+                    CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                }
             }
             break
         }
@@ -99,6 +113,18 @@ object CommandYouWant : KotlinPlugin(
     }
 }
 
+@OptIn(MiraiInternalApi::class)
+fun MessageEvent.rebuildMessageEvent(newMessage: MessageChain): MessageEvent {
+    return when (this) {
+        is FriendMessageEvent -> FriendMessageEvent(sender, newMessage, time)
+        is GroupMessageEvent -> GroupMessageEvent(senderName, permission, sender, newMessage, time)
+        is GroupTempMessageEvent -> GroupTempMessageEvent(sender, newMessage, time)
+        is StrangerMessageEvent -> StrangerMessageEvent(sender, newMessage, time)
+        is OtherClientMessageEvent -> OtherClientMessageEvent(client, newMessage, time)
+        else -> throw IllegalArgumentException("Unsupported MessageEvent")
+    }
+}
+
 /**
  * 分隔字符串
  * @param input 需要分隔的字符串
@@ -106,8 +132,8 @@ object CommandYouWant : KotlinPlugin(
  */
 fun <T> Regex.split(
     input: CharSequence,
-    transform : (s : String, isMatched: Boolean) -> T?
-) : List<T> {
+    transform: (s: String, isMatched: Boolean) -> T?
+): List<T> {
     val list = mutableListOf<T>()
     var index = 0
     for (result in findAll(input)) {

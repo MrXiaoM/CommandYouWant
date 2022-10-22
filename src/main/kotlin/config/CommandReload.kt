@@ -11,8 +11,8 @@ object CommandReload : SimpleCommand(
     parentPermission = CommandYouWant.parentPermission
 ) {
     @Handler
-    suspend fun CommandSender.handle(operation: String) {
-        if (operation.equals("reload", true)) {
+    suspend fun CommandSender.handle(vararg operation: String) {
+        if (operation.isNotEmpty() && operation[0].equals("reload", true)) {
             CommandYouWant.reloadConfig()
             sendMessage("配置文件已重载")
         }
