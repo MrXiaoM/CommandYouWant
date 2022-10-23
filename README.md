@@ -1,7 +1,7 @@
 # CommandYouWant
 > 「你想要的插件」系列作品
 
-[![](https://shields.io/github/downloads/MrXiaoM/CommandYouWant/total)](https://github.com/MrXiaoM/CommandYouWant/releases) [![](https://img.shields.io/badge/mirai--console-2.12.3-blue)](https://github.com/mamoe/mirai) [![](https://img.shields.io/badge/MiraiForum-post-yellow)](https://mirai.mamoe.net/topic/)
+[![](https://shields.io/github/downloads/MrXiaoM/CommandYouWant/total)](https://github.com/MrXiaoM/CommandYouWant/releases) [![](https://img.shields.io/badge/mirai--console-2.12.3-blue)](https://github.com/mamoe/mirai) [![](https://img.shields.io/badge/MiraiForum-post-yellow)](https://mirai.mamoe.net/topic/1703)
 
 重定向命令，统一机器人命令格式。
 
@@ -29,6 +29,10 @@
 以调用 cssxsh 大佬的 NovelAi Helper 为例，先到文件夹 `config/top.mrxiaom.commandyouwant/commands`，第一次启动这个插件会创建这个文件夹并把示例配置 `sample.yml` 放进去。首先把 `sample.yml` 复制一份，取任意名放在同一文件夹中。然后打开编辑：
 
 ```yaml
+# 是否使用事件模式
+# 有些插件并不是标准地注册命令，故需要伪造发送消息事件让插件响应
+# 警告: 这可能会干扰聊天记录类的插件
+event-mode: false
 perm: test
 perm-desc: 获取图片
 deny-tips: '权限不足'
