@@ -14,30 +14,34 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.isSuperclassOf
 
 class CommandConfig(
-    fileName: String,
+    private val fileName: String,
 ) : ReadOnlyPluginConfig("commands/$fileName") {
+    companion object{
+        val registeredPerm = mutableMapOf<String, Permission>()
+    }
     val keywordParsed by lazy {
         parseCommandArgument(keyword)
     }
     val actionsParsed by lazy {
         parseActions(actions)
     }
-    var permissionId: PermissionId? = null
     var permissionRegistered: Permission? = null
 
     /**
      * 注册权限
      */
     fun registerPermission() {
-        if (permission.isNotEmpty()) {
-            if (PermissionService.INSTANCE.getRegisteredPermissions().any {
-                    it.id.namespace == CommandYouWant.id && it.id.name == permission
-                }) return
-            permissionRegistered = PermissionService.INSTANCE.register(
-                PermissionId(CommandYouWant.id, "command.$permission").also { permissionId = it },
-                permissionDescription,
-                CommandYouWant.permissionCommand
-            )
+        try {
+            if (permission.isEmpty()) return
+            permissionRegistered = registeredPerm.getOrElse(permission) {
+                PermissionService.INSTANCE.register(
+                    PermissionId(CommandYouWant.id, "command.$permission"),
+                    permissionDescription,
+                    CommandYouWant.permissionCommand
+                ).also { registeredPerm[permission] = it }
+            }
+        } catch (t: Throwable) {
+            CommandYouWant.logger.error("注册 $fileName.yml 的权限时出错", t)
         }
     }
 
@@ -46,7 +50,7 @@ class CommandConfig(
     val eventMode by value(false)
 
     @ValueName("perm")
-    @ValueDescription("触发命令所需权限 \n(留空为不注册权限，若不注册权限\n将无法限定该命令可在何处使用)\n权限注册后无法注销")
+    @ValueDescription("触发命令所需权限 \n(留空为不注册权限，若不注册权限\n将无法限定该命令可在何处使用)\n权限注册后无法注销\n如要修改，重启生效")
     val permission by value("cssxsh.novelai")
 
     @ValueName("perm-desc")
