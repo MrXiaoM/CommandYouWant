@@ -16,7 +16,7 @@
 
 ## 安装
 
-到 [Releases](https://github.com/MrXiaoM/CommandWant/releases) 下载插件并放入 plugins 文件夹进行安装
+到 [Releases](https://github.com/MrXiaoM/CommandYouWant/releases) 下载插件并放入 plugins 文件夹进行安装
 
 > 2.11 或以上下载 CommandYouWant-*.mirai2.jar
 >
