@@ -240,7 +240,8 @@ class ActionArgumentsReplacement(
         return action.map {
             if (!it.isArgument) return@map PlainText(it.text)
             val index = it.text.substring(1, it.text.length - 1).toIntOrNull() ?: return@map PlainText(it.text)
-            if (index < 0 || index >= args.size) return@map PlainText(it.text)
+            if (index < 0 || index >= args.size)
+                throw IndexOutOfBoundsException("参数索引 {$index} 超出范围 [0, ${args.size})，请检查你的配置文件")
             return@map args[index]
         }.toMessageChain()
     }
