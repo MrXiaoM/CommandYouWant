@@ -10,6 +10,14 @@ group = "top.mrxiaom"
 version = "0.1.0"
 
 repositories {
-    maven("https://maven.aliyun.com/repository/public")
+    maven("https://maven.aliyun.com/repository/central")
     mavenCentral()
+}
+
+dependencies {
+    compileOnly("xyz.cssxsh.mirai:mirai-economy-core:1.0.0-dev")
+}
+
+mirai {
+    jvmTarget = JavaVersion.VERSION_11
 }

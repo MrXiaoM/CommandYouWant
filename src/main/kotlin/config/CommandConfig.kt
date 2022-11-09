@@ -85,6 +85,16 @@ class CommandConfig(
     @ValueDescription("在执行命令时，是否检查权限，若不检查将忽略权限强制执行")
     val checkPerm by value(true)
 
+    @ValueName("cost-money-currency")
+    @ValueDescription("执行命令所需金钱的货币类型\n" +
+            "留空为不花费金钱\n" +
+            "该功能需要安装 mirai-economy-core 插件生效")
+    val costMoneyCurrency by value("mirai-coin")
+
+    @ValueName("cost-money")
+    @ValueDescription("执行命令所需金钱")
+    val costMoney by value(10)
+
     // 兼容无法保存 ReadOnly 配置的老版本
     @OptIn(ConsoleExperimentalApi::class)
     private lateinit var owner_: PluginDataHolder

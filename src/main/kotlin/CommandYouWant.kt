@@ -32,6 +32,8 @@ object CommandYouWant : KotlinPlugin(
         version = "0.1.0",
     ) {
         author("MrXiaoM")
+
+        dependsOn("xyz.cssxsh.mirai.plugin.mirai-economy-core", true)
     }
 ) {
     lateinit var permissionCommand: Permission
@@ -42,6 +44,12 @@ object CommandYouWant : KotlinPlugin(
             "重定向命令",
             parentPermission
         )
+
+        logger.info(when (EconomyHolder.hasEconomyCorePlugin) {
+            true -> "已安装经济插件"
+            false -> "未安装经济插件"
+        })
+
         reloadConfig()
         globalEventChannel().subscribeAlways<MessageEvent>(
             priority = EventPriority.MONITOR
