@@ -13,6 +13,7 @@ import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
+import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.event.globalEventChannel
@@ -67,6 +68,10 @@ object CommandYouWant : KotlinPlugin(
             if (single is PlainText) return@mapIndexed PlainText(single.content.trim().replace(Regex(" +"), " "))
             single
         }
+        val group = if (sender.subject is Group) sender.subject as Group else null
+        // 不收控制台命令
+        val user = sender.user ?: return
+        val source = sender.fromEvent.source
         for (cmd in commandList) {
             val args = cmd.keywordParsed.findArguments(sender, message)
             if (args.isEmpty()) continue
@@ -90,6 +95,9 @@ object CommandYouWant : KotlinPlugin(
                 }
                 return
             }
+
+            if (!cmd.costMoney(group, user, source) ) return
+
             cmd.actionsParsed.forEach {
                 val command = it.parse(args)
                 logger.verbose("refer to $command")

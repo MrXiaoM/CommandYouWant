@@ -19,38 +19,49 @@ object EconomyHolder {
         }
     }
 
-    fun costMoney(user: User, currencyName: String, money: Double): Boolean {
-        if (!hasEconomyCorePlugin) return true
-        val currency = EconomyService.basket[currencyName] ?: return false.also {
-            logger.warning("货币种类 `$currencyName` 不存在")
-        }
+    /**
+     * 金钱扣除结果
+     */
+    enum class CostResult {
+        SUCCESS, NOT_ENOUGH, NO_CURRENCY, NO_PLUGIN
+    }
+
+    /**
+     * 检查并扣除金钱
+     * @return 金钱扣除结果
+     */
+    fun costMoney(
+        user: User,
+        currencyName: String,
+        money: Double
+    ): CostResult {
+        if (!hasEconomyCorePlugin) return CostResult.NO_PLUGIN
+        val currency = EconomyService.basket[currencyName] ?: return CostResult.NO_CURRENCY
         return globalEconomy {
             val account = service.account(user)
-            if (account[currency] < money) return@globalEconomy false
+            if (account[currency] < money) return@globalEconomy CostResult.NOT_ENOUGH
             account -= (currency to money)
-            return@globalEconomy true
+            return@globalEconomy CostResult.SUCCESS
         }
     }
 
     /**
      * 检查并扣除金钱
-     * @return 是否可进行下一步操作
+     * @return 金钱扣除结果
      */
     fun costMoney(
         group: Group,
         user: User,
         currencyName: String,
         money: Double
-    ) : Boolean {
-        if (!hasEconomyCorePlugin) return true
-        val currency = EconomyService.basket[currencyName] ?: return false.also {
-            logger.warning("货币种类 `$currencyName` 不存在")
-        }
+    ) : CostResult {
+        if (!hasEconomyCorePlugin) return CostResult.NO_PLUGIN
+        val currency = EconomyService.basket[currencyName] ?: return CostResult.NO_CURRENCY
         return group.economy {
             val account = service.account(user)
-            if (account[currency] < money) return@economy false
+            if (account[currency] < money) return@economy CostResult.NOT_ENOUGH
             account -= (currency to money)
-            return@economy true
+            return@economy CostResult.SUCCESS
         }
     }
 }

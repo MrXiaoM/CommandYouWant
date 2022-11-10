@@ -7,8 +7,12 @@ import net.mamoe.mirai.console.permission.PermissionId
 import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
+import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.message.data.*
 import top.mrxiaom.commandyouwant.CommandYouWant
+import top.mrxiaom.commandyouwant.EconomyHolder
+import top.mrxiaom.commandyouwant.EconomyHolder.CostResult.*
 import top.mrxiaom.commandyouwant.split
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSuperclassOf
@@ -93,13 +97,42 @@ class CommandConfig(
 
     @ValueName("cost-money")
     @ValueDescription("执行命令所需金钱")
-    val costMoney by value(10)
-    
+    val costMoney by value(10.0)
+
     @ValueName("cost-money-global")
     @ValueDescription("是否从全局上下文扣除金钱\n" +
             "若关闭该项，将在用户执行命令所在群的上下文扣除金钱\n" +
             "私聊执行命令将强制使用全局上下文")
     val costMoneyGlobal by value(false)
+
+    @ValueName("cost-money-not-enough")
+    @ValueDescription("执行命令金钱不足提醒\n" +
+            "\$at 为 @ 发送者，\$quote 为回复发送者，\$cost 为需要花费的金钱")
+    val costMoneyNotEnough by value("\$quote你没有足够的 Mirai 币 (\$cost) 来执行该命令!")
+
+    suspend fun costMoney(
+        group: Group?,
+        user: User,
+        source: MessageSource
+    ): Boolean = when(
+        if (costMoneyGlobal || group == null) EconomyHolder.costMoney(user, costMoneyCurrency, costMoney)
+        else EconomyHolder.costMoney(group, user, costMoneyCurrency, costMoney)
+    ) {
+        NO_CURRENCY -> false.also { EconomyHolder.logger.warning("货币种类 `$costMoneyCurrency` 不存在") }
+        NOT_ENOUGH -> false.also {
+            (group ?: user).sendMessage(buildMessageChain {
+                if (costMoneyNotEnough.contains("\$quote")) add(QuoteReply(source))
+                addAll(Regex("\\\$at").split<SingleMessage>(
+                    costMoneyNotEnough
+                        .replace("\$cost", costMoney.toString())
+                        .replace("\$quote", "")
+                ) { s, isMatched ->
+                    if (isMatched) At(user.id) else PlainText(s)
+                })
+            })
+        }
+        else -> true
+    }
 
     // 兼容无法保存 ReadOnly 配置的老版本
     @OptIn(ConsoleExperimentalApi::class)
