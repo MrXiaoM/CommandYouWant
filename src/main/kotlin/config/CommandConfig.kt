@@ -94,6 +94,12 @@ class CommandConfig(
     @ValueName("cost-money")
     @ValueDescription("执行命令所需金钱")
     val costMoney by value(10)
+    
+    @ValueName("cost-money-global")
+    @ValueDescription("是否从全局上下文扣除金钱\n" +
+            "若关闭该项，将在用户执行命令所在群的上下文扣除金钱\n" +
+            "私聊执行命令将强制使用全局上下文")
+    val costMoneyGlobal by value(false)
 
     // 兼容无法保存 ReadOnly 配置的老版本
     @OptIn(ConsoleExperimentalApi::class)

@@ -6,6 +6,7 @@ import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.utils.MiraiLogger
 import xyz.cssxsh.mirai.economy.EconomyService
 import xyz.cssxsh.mirai.economy.economy
+import xyz.cssxsh.mirai.economy.globalEconomy
 
 object EconomyHolder {
     val logger = MiraiLogger.Factory.create(this::class)
@@ -23,11 +24,11 @@ object EconomyHolder {
         val currency = EconomyService.basket[currencyName] ?: return false.also {
             logger.warning("货币种类 `$currencyName` 不存在")
         }
-        return user.economy {
+        return globalEconomy {
             val account = service.account(user)
-            if (account[currency] < money) return@economy false
+            if (account[currency] < money) return@globalEconomy false
             account -= (currency to money)
-            return@economy true
+            return@globalEconomy true
         }
     }
 
@@ -45,7 +46,7 @@ object EconomyHolder {
         val currency = EconomyService.basket[currencyName] ?: return false.also {
             logger.warning("货币种类 `$currencyName` 不存在")
         }
-        return (group as Contact).economy {
+        return group.economy {
             val account = service.account(user)
             if (account[currency] < money) return@economy false
             account -= (currency to money)

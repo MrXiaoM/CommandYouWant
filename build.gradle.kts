@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("xyz.cssxsh.mirai:mirai-economy-core:1.0.0-dev")
+    compileOnly("xyz.cssxsh.mirai:mirai-economy-core:1.0.0-M1")
 }
 
 mirai {
