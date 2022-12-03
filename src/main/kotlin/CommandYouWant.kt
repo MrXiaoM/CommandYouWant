@@ -15,6 +15,7 @@ import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.event.EventPriority
+import net.mamoe.mirai.event.broadcast
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.message.data.MessageChain
@@ -102,8 +103,10 @@ object CommandYouWant : KotlinPlugin(
                 val command = it.parse(args)
                 logger.verbose("refer to $command")
                 if (cmd.eventMode) {
-                    sender.fromEvent.rebuildMessageEvent(command)
+                    // 重构事件并广播
+                    sender.fromEvent.rebuildMessageEvent(command).broadcast()
                 } else {
+                    // 执行命令
                     CommandManager.executeCommand(sender, command, cmd.checkPerm)
                 }
             }
@@ -132,11 +135,11 @@ object CommandYouWant : KotlinPlugin(
 @OptIn(MiraiInternalApi::class)
 fun MessageEvent.rebuildMessageEvent(newMessage: MessageChain): MessageEvent {
     return when (this) {
-        is FriendMessageEvent -> FriendMessageEvent(sender, newMessage, time)
-        is GroupMessageEvent -> GroupMessageEvent(senderName, permission, sender, newMessage, time)
-        is GroupTempMessageEvent -> GroupTempMessageEvent(sender, newMessage, time)
-        is StrangerMessageEvent -> StrangerMessageEvent(sender, newMessage, time)
-        is OtherClientMessageEvent -> OtherClientMessageEvent(client, newMessage, time)
+        is FriendMessageEvent -> FriendMessageEvent(sender, source.plus(newMessage), time)
+        is GroupMessageEvent -> GroupMessageEvent(senderName, permission, sender, source.plus(newMessage), time)
+        is GroupTempMessageEvent -> GroupTempMessageEvent(sender, source.plus(newMessage), time)
+        is StrangerMessageEvent -> StrangerMessageEvent(sender, source.plus(newMessage), time)
+        is OtherClientMessageEvent -> OtherClientMessageEvent(client, source.plus(newMessage), time)
         else -> throw IllegalArgumentException("Unsupported MessageEvent")
     }
 }
