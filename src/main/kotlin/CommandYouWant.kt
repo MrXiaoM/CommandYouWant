@@ -74,7 +74,7 @@ object CommandYouWant : KotlinPlugin(
         val user = sender.user ?: return
         val source = sender.fromEvent.source
         for (cmd in commandList) {
-            val args = cmd.keywordParsed.findArguments(sender, message)
+            val args = cmd.findArguments(sender, message)
             if (args.isEmpty()) continue
             if (cmd.permissionRegistered?.testPermission(sender) == false) {
                 if (cmd.denyTips.isNotEmpty()) {
@@ -125,7 +125,7 @@ object CommandYouWant : KotlinPlugin(
             commandList.add(CommandConfig(file.nameWithoutExtension).also {
                 it.reload()
                 it.registerPermission()
-                it.keywordParsed
+                it.keywordsParsed
                 it.actionsParsed
             })
         }

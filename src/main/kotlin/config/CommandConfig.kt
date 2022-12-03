@@ -275,17 +275,21 @@ abstract class CommandArgumentTypeCheck(
     }
 }
 
-val regex1 = Regex("\\{[0-9]+}")
+val regex1 = Regex("\\{[0-9]+}\\??")
 private fun parseActions(s: List<String>): List<ActionArgumentsReplacement> = s.map { parseAction(it) }
 private fun parseAction(s: String): ActionArgumentsReplacement {
     return ActionArgumentsReplacement(regex1.split(s) { text, isMatched ->
-        return@split ActionArgument(text, isMatched)
+        if (isMatched){
+            return@split ActionArgument(text.removeSuffix("?"), true, text.endsWith("?"))
+        }
+        return@split ActionArgument(text, false, false)
     })
 }
 
 class ActionArgument(
     val text: String,
-    val isArgument: Boolean
+    val isArgument: Boolean,
+    val isNullable: Boolean
 )
 
 class ActionArgumentsReplacement(
@@ -296,8 +300,8 @@ class ActionArgumentsReplacement(
         CommandYouWant.logger.verbose(args.joinToString(", ") { "\"" + it.toString() + "\"" })
         return action.map {
             if (!it.isArgument) return@map PlainText(it.text)
-            val index = it.text.substring(1, it.text.length - 1).toIntOrNull() ?: return@map PlainText(it.text)
-            if (index < 0 || index >= args.size)
+            val index = it.text.removeSurrounding("{","}").toIntOrNull() ?: return@map PlainText(it.text)
+            if (!it.isNullable && (index < 0 || index >= args.size))
                 throw IndexOutOfBoundsException("参数索引 {$index} 超出范围 [0, ${args.size})，请检查你的配置文件")
             return@map args[index]
         }.toMessageChain()
