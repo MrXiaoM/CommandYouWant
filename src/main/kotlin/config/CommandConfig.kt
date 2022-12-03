@@ -23,13 +23,27 @@ class CommandConfig(
     companion object{
         val registeredPerm = mutableMapOf<String, Permission>()
     }
-    val keywordParsed by lazy {
-        parseCommandArgument(keyword)
+    val keywordsParsed by lazy {
+        mutableListOf(parseCommandArgument(keyword)).plus(
+            keywordsList.map { parseCommandArgument(it) }
+        )
     }
     val actionsParsed by lazy {
         parseActions(actions)
     }
     var permissionRegistered: Permission? = null
+
+    /**
+     * 匹配命令
+     * @param sender 命令发送者
+     * @param message 发送的消息
+     * @return 命令匹配时返回参数列表，不匹配时返回空列表
+     */
+    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage> =
+        keywordsParsed.firstNotNullOfOrNull {
+            val arguments = it.findArguments(sender, message)
+            arguments.ifEmpty { null }
+        } ?: listOf()
 
     /**
      * 注册权限
@@ -68,6 +82,10 @@ class CommandConfig(
     @ValueName("keyword")
     @ValueDescription("触发命令的关键词规则")
     val keyword by value("{at:bot}画画 {next}")
+
+    @ValueName("keywords-list")
+    @ValueDescription("触发命令的关键词规则别名列表。请保持参数数量与主规则一致并避免与其他命令的规则冲突")
+    val keywordsList by value(listOf<String>())
 
     @ValueName("keyword-block")
     @ValueDescription("各个关键词的屏蔽规则")
