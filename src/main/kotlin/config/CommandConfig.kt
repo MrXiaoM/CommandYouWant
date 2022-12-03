@@ -227,6 +227,8 @@ class CommandArgumentPlainText(val content: String) : ICommandArgument {
         }
         return null
     }
+
+    override fun toString(): String = content
 }
 
 class CommandArgument : ICommandArgument {
@@ -238,23 +240,35 @@ class CommandArgument : ICommandArgument {
         }
         return null
     }
+
+    override fun toString(): String = "<文字>"
 }
 
 class CommandArgumentNext : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         return msg.firstOrNull()
     }
+
+    override fun toString(): String = "<文字>"
 }
 
-class CommandArgumentFaceAny : CommandArgumentTypeCheck(Face::class)
-class CommandArgumentImage : CommandArgumentTypeCheck(Image::class)
-class CommandArgumentAtAny : CommandArgumentTypeCheck(At::class)
+class CommandArgumentFaceAny : CommandArgumentTypeCheck(Face::class){
+    override fun toString(): String = "<表情>"
+}
+class CommandArgumentImage : CommandArgumentTypeCheck(Image::class) {
+    override fun toString(): String = "<图片>"
+}
+class CommandArgumentAtAny : CommandArgumentTypeCheck(At::class) {
+    override fun toString(): String = "<@任意群员>"
+}
 class CommandArgumentAtBot : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
         if (m is At && m.target == sender.bot?.id) return m
         return null
     }
+
+    override fun toString(): String = "<@机器人>"
 }
 
 class CommandArgumentAt(val target: Long) : ICommandArgument {
@@ -263,6 +277,8 @@ class CommandArgumentAt(val target: Long) : ICommandArgument {
         if (m is At && m.target == target) return m
         return null
     }
+
+    override fun toString(): String = "<@特定人:$target>"
 }
 
 abstract class CommandArgumentTypeCheck(
