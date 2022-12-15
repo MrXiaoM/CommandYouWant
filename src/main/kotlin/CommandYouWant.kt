@@ -18,11 +18,10 @@ import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.broadcast
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.event.globalEventChannel
-import net.mamoe.mirai.message.data.MessageChain
-import net.mamoe.mirai.message.data.MessageMetadata
-import net.mamoe.mirai.message.data.PlainText
+import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.utils.MiraiInternalApi
 import net.mamoe.mirai.utils.info
+import top.mrxiaom.commandyouwant.config.ActionPrefix.*
 import top.mrxiaom.commandyouwant.config.CommandConfig
 import top.mrxiaom.commandyouwant.config.CommandReload
 import java.io.File
@@ -69,6 +68,20 @@ object CommandYouWant : KotlinPlugin(
             if (single is PlainText) return@mapIndexed PlainText(single.content.trim().replace(Regex(" +"), " "))
             single
         }
+        val event = sender.fromEvent
+        // 基本变量
+        val replacement = mapOf(
+            "botId" to event.bot.id,
+            "subjectId" to event.subject.id,
+            "groupId" to if (event is GroupMessageEvent) event.group.id else "",
+            "friendId" to if (event is FriendMessageEvent) event.friend.id else "",
+            "senderId" to event.sender.id,
+            "quote" to QuoteReply(event.source),
+            "at" to if(event is GroupMessageEvent) At(event.sender) else ""
+        ).entries.associate {
+            val value = it.value
+            it.key.lowercase() to if (value is SingleMessage) value else PlainText(value.toString())
+        }
         val group = if (sender.subject is Group) sender.subject as Group else null
         // 不收控制台命令
         val user = sender.user ?: return
@@ -100,14 +113,22 @@ object CommandYouWant : KotlinPlugin(
             if (!cmd.costMoney(group, user, source) ) return
 
             cmd.actionsParsed.forEach {
-                val command = it.parse(args)
-                logger.verbose("refer to $command")
-                if (cmd.eventMode) {
-                    // 重构事件并广播
-                    sender.fromEvent.rebuildMessageEvent(command).broadcast()
-                } else {
+                val prefix = it.prefix
+                val command = it.parse(args, replacement)
+                logger.verbose("refer to $prefix:$command")
+                when (prefix) {
                     // 执行命令
-                    CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                    CMD -> CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                    // 重构事件并广播
+                    MSG -> sender.fromEvent.rebuildMessageEvent(command).broadcast()
+                    // 发送消息
+                    SEND -> sender.sendMessage(command)
+                    // 兼容旧版本
+                    else -> if (cmd.eventMode) {
+                        sender.fromEvent.rebuildMessageEvent(command).broadcast()
+                    } else {
+                        CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                    }
                 }
             }
             break
