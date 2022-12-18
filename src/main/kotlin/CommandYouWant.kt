@@ -148,12 +148,8 @@ object CommandYouWant : KotlinPlugin(
                     MSG -> sender.fromEvent.rebuildMessageEvent(command).broadcast()
                     // 发送消息
                     SEND -> sender.sendMessage(command)
-                    // 兼容旧版本
-                    else -> if (cmd.eventMode) {
-                        sender.fromEvent.rebuildMessageEvent(command).broadcast()
-                    } else {
-                        CommandManager.executeCommand(sender, command, cmd.checkPerm)
-                    }
+                    // 默认执行方式
+                    else -> CommandManager.executeCommand(sender, command, cmd.checkPerm)
                 }
             }
             break

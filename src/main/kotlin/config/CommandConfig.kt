@@ -63,10 +63,6 @@ class CommandConfig(
         }
     }
 
-    @ValueName("event-mode")
-    @ValueDescription("是否使用事件模式\n有些插件并不是标准地注册命令，故需要伪造发送消息事件让插件响应\n警告: 这可能会干扰聊天记录类的插件")
-    val eventMode by value(false)
-
     @ValueName("perm")
     @ValueDescription("触发命令所需权限 \n(留空为不注册权限，若不注册权限\n将无法限定该命令可在何处使用)\n权限注册后无法注销\n如要修改，重启生效")
     val permission by value("cssxsh.novelai")
