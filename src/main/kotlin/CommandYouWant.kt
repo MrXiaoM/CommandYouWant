@@ -2,9 +2,15 @@ package top.mrxiaom.commandyouwant
 
 import net.mamoe.mirai.console.command.CommandManager
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
+import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.command.CommandSenderOnMessage
 import net.mamoe.mirai.console.command.descriptor.ExperimentalCommandDescriptors
+import net.mamoe.mirai.console.command.resolve.CommandCallInterceptor
+import net.mamoe.mirai.console.command.resolve.InterceptResult
+import net.mamoe.mirai.console.command.resolve.InterceptedReason
+import net.mamoe.mirai.console.extension.PluginComponentStorage
+import net.mamoe.mirai.console.extensions.CommandCallInterceptorProvider
 import net.mamoe.mirai.console.permission.Permission
 import net.mamoe.mirai.console.permission.PermissionId
 import net.mamoe.mirai.console.permission.PermissionService
@@ -19,7 +25,6 @@ import net.mamoe.mirai.event.broadcast
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.event.globalEventChannel
 import net.mamoe.mirai.message.data.*
-import net.mamoe.mirai.utils.MiraiInternalApi
 import net.mamoe.mirai.utils.info
 import top.mrxiaom.commandyouwant.config.ActionPrefix.*
 import top.mrxiaom.commandyouwant.config.CommandConfig
@@ -39,6 +44,26 @@ object CommandYouWant : KotlinPlugin(
 ) {
     lateinit var permissionCommand: Permission
     val commandList = mutableListOf<CommandConfig>()
+    @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+    override fun PluginComponentStorage.onLoad() {
+        contributeCommandCallParser(object: CommandCallInterceptorProvider {
+            override val instance: CommandCallInterceptor by lazy {
+                object: CommandCallInterceptor {
+                    override fun interceptBeforeCall(
+                        message: Message,
+                        caller: CommandSender,
+                    ): InterceptResult<Message>? {
+                        if (message is MessageChain && message.metadataList().any {
+                            it is MetaNoCommand
+                        }) {
+                            return InterceptResult(InterceptedReason("已传到消息事件，不作为指令执行"))
+                        }
+                        return null
+                    }
+                }
+            }
+        })
+    }
     override fun onEnable() {
         permissionCommand = PermissionService.INSTANCE.register(
             PermissionId(id, "command"),
@@ -153,14 +178,13 @@ object CommandYouWant : KotlinPlugin(
     }
 }
 
-@OptIn(MiraiInternalApi::class)
 fun MessageEvent.rebuildMessageEvent(newMessage: MessageChain): MessageEvent {
     return when (this) {
-        is FriendMessageEvent -> FriendMessageEvent(sender, source.plus(newMessage), time)
-        is GroupMessageEvent -> GroupMessageEvent(senderName, permission, sender, source.plus(newMessage), time)
-        is GroupTempMessageEvent -> GroupTempMessageEvent(sender, source.plus(newMessage), time)
-        is StrangerMessageEvent -> StrangerMessageEvent(sender, source.plus(newMessage), time)
-        is OtherClientMessageEvent -> OtherClientMessageEvent(client, source.plus(newMessage), time)
+        is FriendMessageEvent -> FriendMessageEvent(sender, source.plus(newMessage).plus(MetaNoCommand), time)
+        is GroupMessageEvent -> GroupMessageEvent(senderName, permission, sender, source.plus(newMessage).plus(MetaNoCommand), time)
+        is GroupTempMessageEvent -> GroupTempMessageEvent(sender, source.plus(newMessage).plus(MetaNoCommand), time)
+        is StrangerMessageEvent -> StrangerMessageEvent(sender, source.plus(newMessage).plus(MetaNoCommand), time)
+        is OtherClientMessageEvent -> OtherClientMessageEvent(client, source.plus(newMessage).plus(MetaNoCommand), time)
         else -> throw IllegalArgumentException("Unsupported MessageEvent")
     }
 }
