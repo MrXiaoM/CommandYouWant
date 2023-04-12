@@ -102,3 +102,7 @@ is-action-check-perm: false
 | {face}   | 表情                          |
 
 希望你能看懂这份教程。
+
+## 捐助
+
+前往 [爱发电](https://afdian.net/a/mrxiaom) 捐助我。
