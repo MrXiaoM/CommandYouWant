@@ -29,7 +29,7 @@ import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.utils.info
 import top.mrxiaom.commandyouwant.config.ActionPrefix.*
 import top.mrxiaom.commandyouwant.config.CommandConfig
-import top.mrxiaom.commandyouwant.config.CommandReload
+import top.mrxiaom.commandyouwant.command.CommandReload
 import java.io.File
 
 object CommandYouWant : KotlinPlugin(

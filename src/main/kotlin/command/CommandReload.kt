@@ -1,4 +1,4 @@
-package top.mrxiaom.commandyouwant.config
+package top.mrxiaom.commandyouwant.command
 
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CommandSender
