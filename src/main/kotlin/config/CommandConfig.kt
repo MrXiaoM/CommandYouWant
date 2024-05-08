@@ -300,7 +300,7 @@ private fun parseAction(s: String): ActionArgumentsReplacement {
     })
 }
 enum class ActionPrefix(val text: String) {
-    CMD("cmd"), MSG("msg"), SEND("send");
+    CMD("cmd"), CONSOLE("console"), MSG("msg"), SEND("send");
     val prefix: String = "$text:"
 }
 class ActionArgument(

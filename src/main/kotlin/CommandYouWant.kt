@@ -5,6 +5,7 @@ import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CommandSender.Companion.toCommandSender
 import net.mamoe.mirai.console.command.CommandSenderOnMessage
+import net.mamoe.mirai.console.command.ConsoleCommandSender
 import net.mamoe.mirai.console.command.descriptor.ExperimentalCommandDescriptors
 import net.mamoe.mirai.console.command.resolve.CommandCallInterceptor
 import net.mamoe.mirai.console.command.resolve.InterceptResult
@@ -144,6 +145,8 @@ object CommandYouWant : KotlinPlugin(
                 when (prefix) {
                     // 执行命令
                     CMD -> CommandManager.executeCommand(sender, command, cmd.checkPerm)
+                    // 控制台命令
+                    CONSOLE -> CommandManager.executeCommand(ConsoleCommandSender, command, cmd.checkPerm)
                     // 重构事件并广播
                     MSG -> sender.fromEvent.rebuildMessageEvent(command).broadcast()
                     // 发送消息
