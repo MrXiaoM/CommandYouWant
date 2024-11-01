@@ -1,7 +1,7 @@
 # CommandYouWant
 > 「你想要的插件」系列作品
 
-[![](https://shields.io/github/downloads/MrXiaoM/CommandYouWant/total)](https://github.com/MrXiaoM/CommandYouWant/releases) [![](https://img.shields.io/badge/mirai--console-2.12.3-blue)](https://github.com/mamoe/mirai) [![](https://img.shields.io/badge/MiraiForum-post-yellow)](https://mirai.mamoe.net/topic/1703)
+[![](https://shields.io/github/downloads/MrXiaoM/CommandYouWant/total)](https://github.com/MrXiaoM/CommandYouWant/releases) [![](https://img.shields.io/badge/mirai--console-2.16.0-blue)](https://github.com/mamoe/mirai) [![](https://img.shields.io/badge/MiraiForum-post-yellow)](https://mirai.mamoe.net/topic/1703)
 
 重定向命令，统一机器人命令格式。
 
@@ -18,10 +18,6 @@
 
 到 [Releases](https://github.com/MrXiaoM/CommandYouWant/releases) 下载插件并放入 plugins 文件夹进行安装
 
-> 2.11 或以上下载 CommandYouWant-*.mirai2.jar
->
-> 2.11 以下下载 CommandYouWant-legacy-*.mirai.jar
-
 安装完毕后，编辑配置文件作出你想要的修改。在控制台执行 `/cmduw reload` 重载配置即可~
 
 ## 使用方法和示例
@@ -29,14 +25,11 @@
 以调用 cssxsh 大佬的 NovelAi Helper 为例，先到文件夹 `config/top.mrxiaom.commandyouwant/commands`，第一次启动这个插件会创建这个文件夹并把示例配置 `sample.yml` 放进去。首先把 `sample.yml` 复制一份，取任意名放在同一文件夹中。然后打开编辑：
 
 ```yaml
-# 是否使用事件模式
-# 有些插件并不是标准地注册命令，故需要伪造发送消息事件让插件响应
-# 警告: 这可能会干扰聊天记录类的插件
-event-mode: false
 perm: test
 perm-desc: 获取图片
 deny-tips: '权限不足'
 keyword: '{at:bot}画画 {next}'
+keywords-list: []
 # 参数屏蔽词
 keyword-block:
   # 第二个参数 {next} 中禁止出现的字符列表
@@ -51,7 +44,7 @@ is-action-check-perm: false
 ```
 首先我们设置权限，比如将 `perm` 设为 test，填写后用户需要有权限 `top.mrxiaom.commandyouwant:command.test` 才能执行这个命令。
 
-然后，我们需要定义用户要怎样才能触发这个命令，将格式写到 `keyword` 里
+然后，我们需要定义用户要怎样才能触发这个命令，将格式写到 `keyword` 里。如果需要更多命令别名，加到 `keywords-list` 里，格式与 `keyword` 一致。
 
 在 `keyword` 中插入 `{}` 包围的内容作为命令参数，如图中的例子，有两个参数 `{at:bot}` 和 `{next}` (都能填什么参数可以在后面的表格看到)，
 

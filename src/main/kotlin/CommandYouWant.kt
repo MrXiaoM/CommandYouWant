@@ -35,7 +35,7 @@ object CommandYouWant : KotlinPlugin(
     JvmPluginDescription(
         id = "top.mrxiaom.commandyouwant",
         name = "CommandYouWant",
-        version = "0.2.0",
+        version = "0.2.1",
     ) {
         author("MrXiaoM")
 
