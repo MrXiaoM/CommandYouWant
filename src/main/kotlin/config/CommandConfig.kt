@@ -14,9 +14,8 @@ import top.mrxiaom.commandyouwant.CommandYouWant
 import top.mrxiaom.commandyouwant.EconomyHolder
 import top.mrxiaom.commandyouwant.EconomyHolder.CostResult.*
 import top.mrxiaom.commandyouwant.split
-import kotlin.reflect.KClass
-import kotlin.reflect.full.isSuperclassOf
 
+@Suppress("PrivatePropertyName", "unused")
 class CommandConfig(
     private val fileName: String,
 ) : ReadOnlyPluginConfig("commands/$fileName") {
