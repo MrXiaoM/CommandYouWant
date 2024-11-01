@@ -63,8 +63,8 @@ class CommandConfig(
     }
 
     @ValueName("perm")
-    @ValueDescription("触发命令所需权限 \n(留空为不注册权限，若不注册权限\n将无法限定该命令可在何处使用)\n权限注册后无法注销\n如要修改，重启生效")
-    val permission by value("cssxsh.novelai")
+    @ValueDescription("触发命令所需权限 \n(留空为不注册权限，若不注册权限\n将无法限定该命令可在何处使用)\n权限注册后无法注销\n如要修改，重启生效\n最终真正注册到mirai-console里的权限为 top.mrxiaom.commandyouwant:command.你输入的值")
+    val permission by value("")
 
     @ValueName("perm-desc")
     @ValueDescription("权限描述")
@@ -96,7 +96,7 @@ class CommandConfig(
 
     @ValueName("actions")
     @ValueDescription("执行命令")
-    val actions by value(listOf("/nai {1} #seed=114514 #step=3 #width=512 #height=512"))
+    val actions by value(listOf("cmd:/nai {1} #seed=114514 #step=3 #width=512 #height=512"))
 
     @ValueName("is-action-check-perm")
     @ValueDescription("在执行命令时，是否检查权限，若不检查将忽略权限强制执行")
@@ -167,197 +167,5 @@ class CommandConfig(
         }.onFailure { e ->
             CommandYouWant.logger.error(e)
         }
-    }
-}
-
-val regex0 = Regex("\\{[A-Za-z0-9_:-]+}")
-private fun parseCommandArgument(s: String): CommandArgumentsDefector =
-    CommandArgumentsDefector(regex0.split(s) { text, isMatched ->
-        if (!isMatched) return@split CommandArgumentPlainText(text.trim())
-        fun checkSpecial(): ICommandArgument? {
-            val special = text.substring(1, text.length - 1)
-            if (special == "arg") return CommandArgument()
-            if (special == "next") return CommandArgumentNext()
-            if (special == "at") return CommandArgumentAtAny()
-            if (special.startsWith("at:")) {
-                val target = special.substring(3)
-                if (target == "bot") return CommandArgumentAtBot()
-                return CommandArgumentAt(target.toLongOrNull() ?: return null)
-            }
-            if (special == "img") return CommandArgumentImage()
-            if (special == "face") return CommandArgumentFaceAny()
-            return null
-        }
-
-        val result = checkSpecial()
-        if (result == null) CommandYouWant.logger.warning("无法解析 “$s” 的语句 “$text”")
-        return@split result
-    })
-
-class CommandArgumentsDefector(
-    val args: List<ICommandArgument>
-) {
-    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage>? {
-        val msg = message.toMutableList()
-        val argsResult = mutableListOf<SingleMessage>()
-        for (arg in args) {
-            // 如果有一个参数不符合条件，换下一个命令
-            val single = arg.check(sender, msg) ?: return null
-            if (single is PlainText && single.content.isEmpty()) {
-                continue
-            }
-            argsResult.add(single)
-        }
-        return argsResult
-    }
-}
-
-interface ICommandArgument {
-    fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage?
-}
-
-/**
- * 固定格式文字
- */
-class CommandArgumentPlainText(val content: String) : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        if (m is PlainText && m.content.startsWith(content)) {
-            // 吃掉挖出来的字符串
-            msg[0] = PlainText(m.content.substring(content.length))
-            if (msg[0].content.isEmpty()) {
-                // 吃空之后移除
-                msg.removeFirstOrNull()
-            }
-            return PlainText("")
-        }
-        return null
-    }
-
-    override fun toString(): String = content
-}
-
-/**
- * 空格间隔参数
- */
-class CommandArgument : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        if (m is PlainText) {
-            val arg = if (m.content.contains(" ")) m.content.substringBefore(" ") else m.content
-            // 吃掉挖出来的字符串
-            msg[0] = PlainText(m.content.substring(arg.length))
-            if (msg[0].content.isEmpty()) {
-                // 吃空之后移除
-                msg.removeFirstOrNull()
-            }
-            return PlainText(arg)
-        }
-        return null
-    }
-
-    override fun toString(): String = "<文字>"
-}
-
-/**
- * 泛消息类型参数
- */
-class CommandArgumentNext : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        // 吃掉挖出来的消息类型
-        msg.removeFirstOrNull()
-        return m
-    }
-
-    override fun toString(): String = "<文字>"
-}
-
-class CommandArgumentFaceAny : CommandArgumentTypeCheck(Face::class){
-    override fun toString(): String = "<表情>"
-}
-class CommandArgumentImage : CommandArgumentTypeCheck(Image::class) {
-    override fun toString(): String = "<图片>"
-}
-class CommandArgumentAtAny : CommandArgumentTypeCheck(At::class) {
-    override fun toString(): String = "<@任意群员>"
-}
-class CommandArgumentAtBot : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        if (m is At && m.target == sender.bot?.id) {
-            // 吃掉挖出来的At消息
-            msg.removeFirstOrNull()
-            return m
-        }
-        return null
-    }
-
-    override fun toString(): String = "<@机器人>"
-}
-
-class CommandArgumentAt(val target: Long) : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        if (m is At && m.target == target) {
-            // 吃掉挖出来的At消息
-            msg.removeFirstOrNull()
-            return m
-        }
-        return null
-    }
-
-    override fun toString(): String = "<@特定人:$target>"
-}
-
-abstract class CommandArgumentTypeCheck(
-    private val type: KClass<out SingleMessage>
-) : ICommandArgument {
-    override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        val m = msg.firstOrNull() ?: return null
-        if (m::class.isSuperclassOf(type).not()) return null
-        // 吃掉挖出来的指定类型消息
-        msg.removeFirstOrNull()
-        return m
-    }
-}
-
-val regex1 = Regex("\\{[0-9]+}\\??")
-private fun parseActions(s: List<String>): List<ActionArgumentsReplacement> = s.map { parseAction(it) }
-private fun parseAction(s: String): ActionArgumentsReplacement {
-    val prefix = ActionPrefix.values().firstOrNull { s.startsWith(it.prefix) }
-    val command = prefix?.let { s.removePrefix(it.prefix) } ?: s
-    return ActionArgumentsReplacement(prefix, regex1.split(command) { text, isMatched ->
-        if (isMatched){
-            return@split ActionArgument(text.removeSuffix("?"), true, text.endsWith("?"))
-        }
-        return@split ActionArgument(text, false, false)
-    })
-}
-enum class ActionPrefix(val text: String) {
-    CMD("cmd"), CONSOLE("console"), MSG("msg"), SEND("send");
-    val prefix: String = "$text:"
-}
-class ActionArgument(
-    val text: String,
-    val isArgument: Boolean,
-    val isNullable: Boolean
-)
-
-class ActionArgumentsReplacement(
-    val prefix: ActionPrefix?,
-    val action: List<ActionArgument>
-) {
-    fun parse(args: List<SingleMessage>, replacement: Map<String, SingleMessage>): MessageChain {
-        CommandYouWant.logger.verbose(action.joinToString(", ") { (if (it.isArgument) "*" else "") + "\"" + it.text + "\"" })
-        CommandYouWant.logger.verbose(args.joinToString(", ") { "\"" + it.toString() + "\"" })
-        return action.map {
-            if (!it.isArgument) return@map PlainText(it.text)
-            val text = it.text.removeSurrounding("{","}")
-            val index = text.toIntOrNull() ?: return@map replacement[text.lowercase()] ?: PlainText(text)
-            if (!it.isNullable && (index < 0 || index >= args.size))
-                throw IndexOutOfBoundsException("参数索引 {$index} 超出范围 [0, ${args.size})，请检查你的配置文件")
-            return@map args[index]
-        }.toMessageChain()
     }
 }
