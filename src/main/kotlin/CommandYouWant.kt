@@ -29,7 +29,7 @@ import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.utils.info
 import top.mrxiaom.commandyouwant.config.ActionPrefix.*
 import top.mrxiaom.commandyouwant.config.CommandConfig
-import top.mrxiaom.commandyouwant.command.CommandReload
+import top.mrxiaom.commandyouwant.command.Commands
 import java.io.File
 
 object CommandYouWant : KotlinPlugin(
@@ -45,7 +45,7 @@ object CommandYouWant : KotlinPlugin(
 ) {
     lateinit var permissionCommand: Permission
     val commandList = mutableListOf<CommandConfig>()
-    @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+    @OptIn(ExperimentalCommandDescriptors::class)
     override fun PluginComponentStorage.onLoad() {
         contributeCommandCallParser(object: CommandCallInterceptorProvider {
             override val instance: CommandCallInterceptor by lazy {
@@ -84,11 +84,11 @@ object CommandYouWant : KotlinPlugin(
             val sender = toCommandSender()
             processCommand(sender, message)
         }
-        CommandReload.register()
+        Commands.register()
         logger.info { "Plugin loaded" }
     }
 
-    @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
+    @OptIn(ExperimentalCommandDescriptors::class)
     private suspend fun processCommand(sender: CommandSenderOnMessage<MessageEvent>, originalMessage: MessageChain) {
         // 不收控制台命令
         val user = sender.user ?: return
