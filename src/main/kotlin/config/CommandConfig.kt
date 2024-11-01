@@ -39,11 +39,10 @@ class CommandConfig(
      * @param message 发送的消息
      * @return 命令匹配时返回参数列表，不匹配时返回空列表
      */
-    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage> =
+    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage>? =
         keywordsParsed.firstNotNullOfOrNull {
-            val arguments = it.findArguments(sender, message)
-            arguments.ifEmpty { null }
-        } ?: listOf()
+            it.findArguments(sender, message)
+        }
 
     /**
      * 注册权限
@@ -198,12 +197,15 @@ private fun parseCommandArgument(s: String): CommandArgumentsDefector =
 class CommandArgumentsDefector(
     val args: List<ICommandArgument>
 ) {
-    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage> {
+    fun findArguments(sender: CommandSender, message: List<SingleMessage>): List<SingleMessage>? {
         val msg = message.toMutableList()
         val argsResult = mutableListOf<SingleMessage>()
         for (arg in args) {
-            val single = arg.check(sender, msg) ?: return listOf()
-            if (single is PlainText && single.content.isEmpty()) continue
+            // 如果有一个参数不符合条件，换下一个命令
+            val single = arg.check(sender, msg) ?: return null
+            if (single is PlainText && single.content.isEmpty()) {
+                continue
+            }
             argsResult.add(single)
         }
         return argsResult
@@ -214,11 +216,19 @@ interface ICommandArgument {
     fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage?
 }
 
+/**
+ * 固定格式文字
+ */
 class CommandArgumentPlainText(val content: String) : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
         if (m is PlainText && m.content.startsWith(content)) {
+            // 吃掉挖出来的字符串
             msg[0] = PlainText(m.content.substring(content.length))
+            if (msg[0].content.isEmpty()) {
+                // 吃空之后移除
+                msg.removeFirstOrNull()
+            }
             return PlainText("")
         }
         return null
@@ -227,11 +237,20 @@ class CommandArgumentPlainText(val content: String) : ICommandArgument {
     override fun toString(): String = content
 }
 
+/**
+ * 空格间隔参数
+ */
 class CommandArgument : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
         if (m is PlainText) {
             val arg = if (m.content.contains(" ")) m.content.substringBefore(" ") else m.content
+            // 吃掉挖出来的字符串
+            msg[0] = PlainText(m.content.substring(arg.length))
+            if (msg[0].content.isEmpty()) {
+                // 吃空之后移除
+                msg.removeFirstOrNull()
+            }
             return PlainText(arg)
         }
         return null
@@ -240,9 +259,15 @@ class CommandArgument : ICommandArgument {
     override fun toString(): String = "<文字>"
 }
 
+/**
+ * 泛消息类型参数
+ */
 class CommandArgumentNext : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
-        return msg.firstOrNull()
+        val m = msg.firstOrNull() ?: return null
+        // 吃掉挖出来的消息类型
+        msg.removeFirstOrNull()
+        return m
     }
 
     override fun toString(): String = "<文字>"
@@ -260,7 +285,11 @@ class CommandArgumentAtAny : CommandArgumentTypeCheck(At::class) {
 class CommandArgumentAtBot : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
-        if (m is At && m.target == sender.bot?.id) return m
+        if (m is At && m.target == sender.bot?.id) {
+            // 吃掉挖出来的At消息
+            msg.removeFirstOrNull()
+            return m
+        }
         return null
     }
 
@@ -270,7 +299,11 @@ class CommandArgumentAtBot : ICommandArgument {
 class CommandArgumentAt(val target: Long) : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
-        if (m is At && m.target == target) return m
+        if (m is At && m.target == target) {
+            // 吃掉挖出来的At消息
+            msg.removeFirstOrNull()
+            return m
+        }
         return null
     }
 
@@ -282,8 +315,10 @@ abstract class CommandArgumentTypeCheck(
 ) : ICommandArgument {
     override fun check(sender: CommandSender, msg: MutableList<SingleMessage>): SingleMessage? {
         val m = msg.firstOrNull() ?: return null
-        if (m::class.isSuperclassOf(type)) return m
-        return null
+        if (m::class.isSuperclassOf(type).not()) return null
+        // 吃掉挖出来的指定类型消息
+        msg.removeFirstOrNull()
+        return m
     }
 }
 
