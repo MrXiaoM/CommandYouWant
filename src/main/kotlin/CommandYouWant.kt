@@ -19,7 +19,6 @@ import net.mamoe.mirai.console.permission.PermissionService.Companion.testPermis
 import net.mamoe.mirai.console.plugin.id
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
-import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.broadcast
@@ -92,11 +91,18 @@ object CommandYouWant : KotlinPlugin(
     private suspend fun processCommand(sender: CommandSenderOnMessage<MessageEvent>, originalMessage: MessageChain) {
         // 不收控制台命令
         val user = sender.user ?: return
-        val message = originalMessage.filterNot { it is MessageMetadata }.mapIndexed { _, single ->
-            if (single is PlainText) return@mapIndexed PlainText(single.content.trim().replace(Regex(" +"), " "))
-            single
-        }
+        val group = sender.subject as? Group
         val event = sender.fromEvent
+        val source = event.source
+        val message = originalMessage.filterNot { it is MessageMetadata }.map { single ->
+            if (single is PlainText) {
+                val s = single.content.trim() // 移除多空格
+                    .replace(Regex(" +"), " ")
+                return@map PlainText(s)
+            } else {
+                return@map single
+            }
+        }
         // 基本变量
         val replacement = mapOf(
             "botId" to event.bot.id,
@@ -110,8 +116,6 @@ object CommandYouWant : KotlinPlugin(
             val value = it.value
             it.key.lowercase() to if (value is SingleMessage) value else PlainText(value.toString())
         }
-        val group = sender.subject as? Group
-        val source = sender.fromEvent.source
         for (cmd in commandList) {
             val args = cmd.findArguments(sender, message) ?: continue
             if (cmd.permissionRegistered?.testPermission(sender) == false) {
@@ -122,8 +126,8 @@ object CommandYouWant : KotlinPlugin(
             }
             var blocked = false
             for ((index, list) in cmd.keywordBlocks) {
-                val s = args.getOrNull(index)
-                if (s != null && list.any { s.contentToString().contains(it) }) {
+                val s = args.getOrNull(index)?.contentToString() ?: continue
+                if (list.any(s::contains)) {
                     blocked = true
                     break
                 }
@@ -135,7 +139,7 @@ object CommandYouWant : KotlinPlugin(
                 return
             }
 
-            if (!cmd.costMoney(group, user, source) ) return
+            if (!cmd.costMoney(group, user, source)) return
 
             cmd.actionsParsed.forEach {
                 val prefix = it.prefix
