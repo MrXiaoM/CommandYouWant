@@ -11,7 +11,11 @@ import kotlin.reflect.full.isSuperclassOf
 val regex0 = Regex("\\{[A-Za-z0-9_:-]+}")
 internal fun parseCommandArgument(s: String): CommandArgumentsDefector =
     CommandArgumentsDefector(regex0.split(s) { text, isMatched ->
-        if (!isMatched) return@split CommandArgumentPlainText(text.trim())
+        if (!isMatched) {
+            val str = text.trim()
+            if (str.isEmpty()) return@split null
+            else return@split CommandArgumentPlainText(str)
+        }
         fun checkSpecial(): ICommandArgument? {
             val special = text.substring(1, text.length - 1)
             if (special == "arg") return CommandArgument()
@@ -62,7 +66,7 @@ class CommandArgumentPlainText(val content: String) : ICommandArgument {
         val m = msg.firstOrNull() ?: return null
         if (m is PlainText && m.content.startsWith(content)) {
             // 吃掉挖出来的字符串
-            msg[0] = PlainText(m.content.substring(content.length))
+            msg[0] = PlainText(m.content.substring(content.length).trimStart())
             if (msg[0].content.isEmpty()) {
                 // 吃空之后移除
                 msg.removeFirstOrNull()
@@ -84,7 +88,7 @@ class CommandArgument : ICommandArgument {
         if (m is PlainText) {
             val arg = if (m.content.contains(" ")) m.content.substringBefore(" ") else m.content
             // 吃掉挖出来的字符串
-            msg[0] = PlainText(m.content.substring(arg.length))
+            msg[0] = PlainText(m.content.substring(arg.length).trimStart())
             if (msg[0].content.isEmpty()) {
                 // 吃空之后移除
                 msg.removeFirstOrNull()
