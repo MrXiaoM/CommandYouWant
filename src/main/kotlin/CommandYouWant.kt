@@ -90,6 +90,8 @@ object CommandYouWant : KotlinPlugin(
 
     @OptIn(ExperimentalCommandDescriptors::class, ConsoleExperimentalApi::class)
     private suspend fun processCommand(sender: CommandSenderOnMessage<MessageEvent>, originalMessage: MessageChain) {
+        // 不收控制台命令
+        val user = sender.user ?: return
         val message = originalMessage.filterNot { it is MessageMetadata }.mapIndexed { _, single ->
             if (single is PlainText) return@mapIndexed PlainText(single.content.trim().replace(Regex(" +"), " "))
             single
@@ -108,13 +110,10 @@ object CommandYouWant : KotlinPlugin(
             val value = it.value
             it.key.lowercase() to if (value is SingleMessage) value else PlainText(value.toString())
         }
-        val group = if (sender.subject is Group) sender.subject as Group else null
-        // 不收控制台命令
-        val user = sender.user ?: return
+        val group = sender.subject as? Group
         val source = sender.fromEvent.source
         for (cmd in commandList) {
-            val args = cmd.findArguments(sender, message)
-            if (args.isEmpty()) continue
+            val args = cmd.findArguments(sender, message) ?: continue
             if (cmd.permissionRegistered?.testPermission(sender) == false) {
                 if (cmd.denyTips.isNotEmpty()) {
                     sender.sendMessage(cmd.denyTips)
